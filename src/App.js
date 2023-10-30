@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function FilterableImageLoader({ images }) {
   const [filterText, setFilterText] = useState("");
@@ -10,53 +10,77 @@ function FilterableImageLoader({ images }) {
     </div>
   );
 }
+
 function Images({ filterText }) {
   const [images, setImages] = useState([]);
   const YOUR_ACCESS_KEY = "eupMYpd7d9Rbvo4SbiQWpOP7dTGyOVv4P19tLFVGfgU";
-  const toggle = true;
-  useEffect(() => {
-    async function fetchUnsplashImages() {
-      try {
-        const response = await fetch(
-          `https://api.unsplash.com/photos/?client_id=${YOUR_ACCESS_KEY}&query=random&count=10  `
-        );
+  const page = useRef(1);
+  const loading = useRef(false);
 
-        if (!response.ok) {
-          throw new Error("Network error");
-        }
+  const loadMoreImages = async () => {
+    if (loading.current) return;
 
-        const data = await response.json();
-        setImages(data);
-      } catch (error) {
-        console.error("Fetch error:", error);
+    loading.current = true;
+
+    try {
+      const response = await fetch(
+        `https://api.unsplash.com/photos/?client_id=${YOUR_ACCESS_KEY}&page=${page.current}&count=10`
+      );
+
+      if (!response.ok) {
+        throw new Error("Network error");
       }
+
+      const data = await response.json();
+      setImages((prevImages) => [...prevImages, ...data]);
+      page.current++;
+    } catch (error) {
+      console.error("Fetch error:", error);
+    } finally {
+      loading.current = false;
     }
-    fetchUnsplashImages();
+  };
+
+  useEffect(() => {
+    loadMoreImages();
   }, []);
 
   const filteredImages = images.filter((image) =>
     image.slug.toLowerCase().includes(filterText.toLowerCase())
   );
 
+  const handleScroll = () => {
+    if (
+      window.innerHeight + document.documentElement.scrollTop ===
+      document.documentElement.offsetHeight
+    ) {
+      loadMoreImages();
+    }
+  };
+
+  useEffect(() => {
+    window.addEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
   return (
     <div>
-      {toggle ? (
-        <div className="image-container">
-          {filteredImages.map((image, index) => (
-            <img
-              key={index}
-              src={image.urls.regular}
-              alt={image.slug}
-              className="image"
-            />
-          ))}
-        </div>
-      ) : (
-        <div>Đéo có kết quả</div>
-      )}
+      <div className="image-container">
+        {filteredImages.map((image, index) => (
+          <img
+            key={index}
+            src={image.urls.regular}
+            alt={image.slug}
+            className="image"
+          />
+        ))}
+      </div>
     </div>
   );
 }
+
 function SearchBar({ filterText, onFilterTextChange }) {
   return (
     <form>
