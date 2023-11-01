@@ -30,6 +30,7 @@ function Images({ queryText, key }) {
   const page = useRef(1);
   const loading = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   const loadMoreImages = async () => {
     const query = queryText;
@@ -46,6 +47,9 @@ function Images({ queryText, key }) {
       const data = await response.json();
       setImages((prevImages) => [...prevImages, ...data.results]);
       page.current++;
+      if (data.results.length === 0) {
+        setNotFound(true);
+      }
     } catch (error) {
       console.error("Fetch error:", error);
     } finally {
@@ -85,6 +89,7 @@ function Images({ queryText, key }) {
           />
         ))}
       </div>
+      {notFound ? <div className="not-found">No Result</div> : null}
       {isLoading && <div className="loading">LOADING.....</div>}
     </div>
   );
@@ -102,6 +107,7 @@ function FilterableImageLoader({ images }) {
   return (
     <div>
       <div className="container">
+        <h1 className="title"> Image Finder</h1>
         <SearchBar query={query} onSearch={handleSearch} />
         <div className="list-images">
           <Images images={images} queryText={query} key={key} />
